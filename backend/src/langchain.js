@@ -29,7 +29,7 @@ export async function saveMessageToPinecone({ userId, text, role }) {
 
 export async function retrieveRelevantMemories(userId, query) {
   const store = await getVectorStore();
-  const results = await store.similaritySearch(query, 4, {
+  const results = await store.similaritySearch(query, 10, {
     userId, // filter, depends on index metadata config
   });
   return results;

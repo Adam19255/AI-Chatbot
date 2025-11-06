@@ -20,6 +20,10 @@ app.post("/chat", async (req, res) => {
 
     // 1) retrieve long-term mem
     const memories = await retrieveRelevantMemories(userId, message);
+    console.log(
+      "🧠 Retrieved memories:",
+      memories.map((m) => m.pageContent)
+    );
 
     // 2) build system prompt
     const systemPrompt = getPersonalityPrompt(personality);
