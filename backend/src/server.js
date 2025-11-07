@@ -16,56 +16,50 @@ const model = new ChatOpenAI({
 
 app.post("/chat", async (req, res) => {
   try {
-    const { userId = "demo-user", message, personality = "helpful", history = [] } = req.body;
+    const { userId, message, personality = "helpful", history = [] } = req.body;
 
-    // 1) retrieve long-term mem
+    if (!userId) throw new Error("Missing userId");
+
     const memories = await retrieveRelevantMemories(userId, message);
-    console.log(
-      "🧠 Retrieved memories:",
-      memories.map((m) => m.pageContent)
-    );
-
-    // 2) build system prompt
-    const systemPrompt = getPersonalityPrompt(personality);
-
-    // 3) turn memories into text
     const memoryText = memories.map((m) => m.pageContent).join("\n");
+    const systemPrompt = getPersonalityPrompt(personality);
+    const restrictionPrompt = `
+    System rules:
+    - Do not provide code of any kind.
+    - Do not discuss sensitive topics like politics or religion.
+    - Do not explain how to perform illegal, harmful, or dangerous actions.
+    - Focus only on general, factual, and safe explanations.
+    - If the user requests restricted content, politely decline.
+    `;
 
-    // 4) build messages array
-    const msgs = [{ role: "system", content: systemPrompt }];
-
+    const msgs = [
+      { role: "system", content: restrictionPrompt },
+      { role: "system", content: systemPrompt },
+    ];
     if (memoryText) {
       msgs.push({
         role: "system",
-        content: "Relevant past info:\n" + memoryText,
+        content: `The user has told you these facts before. Use them if relevant:\n${memoryText}`,
       });
     }
 
-    // add short-term history from frontend (last 5 msgs)
-    history.forEach((h) => {
-      msgs.push({ role: h.role, content: h.content });
-    });
-
-    // current user message
+    history.forEach((h) => msgs.push({ role: h.role, content: h.content }));
     msgs.push({ role: "user", content: message });
 
-    // 5) call the model
     const response = await model.invoke(msgs);
+    const reply = response.content;
 
-    const botReply = response.content; // LangChain returns content in a friendly way
-
-    // 6) save both user and assistant message to Pinecone
+    // Save messages
     await saveMessageToPinecone({ userId, text: message, role: "user" });
-    await saveMessageToPinecone({ userId, text: botReply, role: "assistant" });
+    await saveMessageToPinecone({ userId, text: reply, role: "assistant" });
 
-    res.json({ reply: botReply });
+    res.json({ reply });
   } catch (err) {
-    console.error(err);
+    console.error("Chat error:", err);
     res.status(500).json({ error: err.message });
   }
 });
 
-const PORT = process.env.PORT;
-app.listen(PORT, () => {
-  console.log(`Server listening on ${PORT}`);
+app.listen(process.env.PORT, () => {
+  console.log(`Server running on port ${process.env.PORT}`);
 });
