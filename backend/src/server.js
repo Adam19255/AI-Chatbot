@@ -4,6 +4,7 @@ import cors from "cors";
 import { ChatOpenAI } from "@langchain/openai";
 import { retrieveRelevantMemories, saveMessageToPinecone } from "./langchain.js";
 import { getPersonalityPrompt } from "./personalities.js";
+import { getPineconeIndex } from "./pinecone.js";
 
 const app = express();
 app.use(cors());
@@ -56,6 +57,25 @@ app.post("/chat", async (req, res) => {
     res.json({ reply });
   } catch (err) {
     console.error("Chat error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete("/memory/:userId", async (req, res) => {
+  try {
+    const { userId } = req.params;
+    if (!userId) {
+      return res.status(400).json({ error: "Missing userId" });
+    }
+
+    const index = await getPineconeIndex();
+    const ns = index.namespace("__default__");
+    await ns._deleteMany({ userId: { $eq: userId } });
+
+    console.log(`Memory deleted for userId: ${userId}`);
+    res.json({ success: true });
+  } catch (err) {
+    console.error("Error deleting memory:", err);
     res.status(500).json({ error: err.message });
   }
 });
