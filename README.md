@@ -50,7 +50,7 @@ npm install
 #### Frontend
 
 ```bash
-cd ../frontend
+cd frontend
 npm install
 ```
 
@@ -79,7 +79,7 @@ Server runs on: http://localhost:3000
 #### Frontend
 
 ```bash
-cd ../frontend
+cd frontend
 npm run dev
 ```
 
