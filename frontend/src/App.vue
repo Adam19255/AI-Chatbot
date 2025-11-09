@@ -81,6 +81,7 @@ async function deleteUserMemory() {
           <option value="helpful">Helpful</option>
           <option value="funny">Funny</option>
           <option value="formal">Formal</option>
+          <option value="unhelpful">Unhelpful</option>
         </select>
       </div>
       <svg
